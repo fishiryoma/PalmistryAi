@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# Streamlit
+.streamlit/
+
+# 環境設定
+.env
+*.env
+
+# Jupyter Notebook（如果你有用）
+.ipynb_checkpoints/
+
+# 作業系統
+.DS_Store
+Thumbs.db
+
+# VSCode 或 PyCharm 設定檔（可選）
+.vscode/
+.idea/
+
+# 測試圖片或暫存檔
+assets/sample_images/
+*.png
+*.jpg
+*.jpeg
+
+# 排除虛擬環境
+.venv/
