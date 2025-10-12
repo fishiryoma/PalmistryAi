@@ -8,7 +8,11 @@ st.set_page_config(page_title="手相占卜 AI", layout="centered")
 st.title("📸 手相占卜 AI 測試版")
 
 # 圖片上傳區塊
-uploaded_file = st.file_uploader("請上傳你的手掌照片", type=["jpg", "png"])
+uploaded_file = st.file_uploader(
+    "請上傳你的手掌照片 (最大 10MB)", 
+    type=["jpg", "png", "jpeg"],
+    help="支援格式：JPG, PNG, JPEG | 檔案大小限制：10MB"
+)
 
 st.markdown("""
     <style>
@@ -21,12 +25,25 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if uploaded_file:
-    image = Image.open(uploaded_file)
-    col1, col2, col3 = st.columns([1, 3, 1])
-    with col2:
-        st.image(image, caption="預覽照片", width=400)
-    edges, features = analyze_palm(image)
-    st.success("圖片上傳成功！")
+    # 檢查檔案大小 (10MB = 10 * 1024 * 1024 bytes)
+    file_size = uploaded_file.size
+    max_size = 10 * 1024 * 1024  # 10MB
+    
+    if file_size > max_size:
+        st.error(f"❌ 檔案太大！目前檔案大小：{file_size/1024/1024:.1f}MB，請上傳小於 10MB 的圖片。")
+        st.info("💡 提示：如果檔案一直無法上傳，可能是 Streamlit Cloud 的限制，請嘗試壓縮圖片。")
+        st.stop()
+    
+    try:
+        image = Image.open(uploaded_file)
+        col1, col2, col3 = st.columns([1, 3, 1])
+        with col2:
+            st.image(image, caption="預覽照片", width=400)
+        edges, features = analyze_palm(image)
+        st.success(f"✅ 圖片上傳成功！檔案大小：{file_size/1024/1024:.1f}MB")
+    except Exception as e:
+        st.error(f"❌ 圖片格式錯誤或檔案損壞：{str(e)}")
+        st.stop()
     if st.button("開始分析手相"):
         # 立即顯示分析狀態
         status_placeholder = st.empty()
