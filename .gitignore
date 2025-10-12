@@ -25,11 +25,5 @@ Thumbs.db
 .vscode/
 .idea/
 
-# 測試圖片或暫存檔
-assets/sample_images/
-*.png
-*.jpg
-*.jpeg
-
 # 排除虛擬環境
 .venv/
