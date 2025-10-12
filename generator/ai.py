@@ -6,7 +6,7 @@ load_dotenv()
 api_key = os.getenv("API_KEY")
 
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel("gemini-2.5-flash-lite")
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 def call_ai(features):
     prompt = f"""
