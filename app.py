@@ -28,20 +28,30 @@ if uploaded_file:
     edges, features = analyze_palm(image)
     st.success("圖片上傳成功！")
     if st.button("開始分析手相"):
+        # 立即顯示分析狀態
+        status_placeholder = st.empty()
+        result_placeholder = st.empty()
+        
+        status_placeholder.info("🔮 正在分析手相，請稍候...")
+        
         with st.spinner("分析手相中..."):
             result = call_ai(features)
-            st.write(result)
-            character = result.split("與你相近的西洋棋角色為：")[-1].strip()[:2]
-            file_path = f"./assets/{role_name("tw", character)}.png"
-            print(character)
+            
+        # 清除狀態訊息，顯示結果
+        status_placeholder.empty()
+        result_placeholder.write(result)
+        
+        character = result.split("與你相近的西洋棋角色為：")[-1].strip()[:2]
+        file_path = f"./assets/{role_name("tw", character)}.png"
+        print(character)
 
-            col1, col2, col3 = st.columns([1, 3, 1])
-            with col2:
-                try:
-                    card = Image.open(file_path)
-                    st.image(card, caption="你的角色卡", width="content")
-                except FileNotFoundError:
-                    st.error(f"找不到圖片: {file_path}")
+        col1, col2, col3 = st.columns([1, 3, 1])
+        with col2:
+            try:
+                card = Image.open(file_path)
+                st.image(card, caption="你的角色卡", width="content")
+            except FileNotFoundError:
+                st.error(f"找不到圖片: {file_path}")
 
 
 else:
