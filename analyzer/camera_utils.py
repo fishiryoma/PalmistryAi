@@ -1,6 +1,5 @@
 import cv2
 import mediapipe as mp
-import numpy as np
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, RTCConfiguration
 import av
 
@@ -16,6 +15,16 @@ class VideoTransformer(VideoTransformerBase):
         )
         self.mp_drawing = mp.solutions.drawing_utils
         
+        self.drawing_spec_landmark = self.mp_drawing.DrawingSpec(
+            color=(0, 255, 0),  # 關鍵點
+            thickness=4,            # 點的粗細
+            circle_radius=4         # 點的半徑
+        )
+        self.drawing_spec_connection = self.mp_drawing.DrawingSpec(
+            color=(255, 255, 255),  # 連線
+            thickness=4       # 連線粗細
+        )
+        
     def recv(self, frame):
         img = frame.to_ndarray(format="bgr24")
         # 轉換為 RGB 進行 MediaPipe 處理
@@ -24,12 +33,15 @@ class VideoTransformer(VideoTransformerBase):
         
         # MediaPipe 手部偵測
         results = self.hands.process(rgb_img)
-        
         # 在 BGR 圖像上繪製關鍵點（用於顯示）
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
                 self.mp_drawing.draw_landmarks(
-                    img, hand_landmarks, self.mp_hands.HAND_CONNECTIONS
+                    img, 
+                    hand_landmarks, 
+                    self.mp_hands.HAND_CONNECTIONS,
+                    landmark_drawing_spec=self.drawing_spec_landmark,
+                    connection_drawing_spec=self.drawing_spec_connection
                 )
         
         return av.VideoFrame.from_ndarray(img, format="bgr24")

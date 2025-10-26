@@ -4,10 +4,20 @@ from generator.ai import call_ai
 from analyzer.image_utils import analyze_palm
 from analyzer.role_map import role_name
 from analyzer.camera_utils import init_camera, capture_photo
-import numpy as np
+from analyzer.hand_detector import detect_hand_in_image
 
 st.set_page_config(page_title="手相占卜 AI", layout="centered")
 st.title("📸 手相占卜 AI 測試版")
+
+st.markdown("""
+    <style>
+    div.stButton > button:first-child {
+        height: 60px;
+        font-size: 20px;
+        border-radius: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # 選擇輸入方式
 input_method = st.radio(
@@ -29,58 +39,56 @@ else:
     uploaded_file = None
     # 攝影機區塊
     st.subheader("攝影機模式")
-    st.info("💡 攝影機會自動偵測手部並顯示關鍵點，請拍攝手掌照片。")
     
     # 初始化攝影機
     webrtc_ctx = init_camera()
     
     # 顯示攝影機狀態
-    if webrtc_ctx.state.playing:
-        st.success("🟢 攝影機已啟動")
-    else:
+    if not webrtc_ctx.state.playing:
         st.warning("🔴 攝影機未啟動 - 請點擊上方的 START 按鈕")
     
     # 拍照按鈕
-    if st.button("拍照", key="capture_btn", disabled=not webrtc_ctx.state.playing):
+    if st.button("📸 拍照", key="capture_btn", disabled=not webrtc_ctx.state.playing):
         with st.spinner("正在拍照..."):
             captured_image = capture_photo(webrtc_ctx)
             if captured_image is not None:
-                st.session_state.captured_image = captured_image
+                # 檢查圖片是否包含手部
+                hand_detected, num_landmarks, processed_image = detect_hand_in_image(captured_image)
+                
+                if hand_detected:
+                    st.session_state.captured_image = captured_image
+                    st.session_state.processed_image = processed_image  # 存儲處理後的圖片用於預覽
+                    st.success(f"✅ 拍照成功！偵測到完整手部")
+                else:
+                    st.error("❌ 未偵測到完整手部，請重新拍照")
+                    st.info("💡 請確保手掌完全在畫面中且光線充足")
             else:
-                st.error("❌ 拍照失敗，可能原因：")
-                st.write("- 攝影機畫面未完全載入")
-                st.write("- 請稍等幾秒後重試")
+                    st.error("❌ 拍照失敗，請重試")    
     
     # 顯示拍攝的照片
-    if 'captured_image' in st.session_state:
+    if 'processed_image' in st.session_state:
         st.subheader("📷 拍攝結果")
         col1, col2, col3 = st.columns([1, 3, 1])
         with col2:
             # 將 numpy array 轉換為 PIL Image
-            image = Image.fromarray(st.session_state.captured_image)
-            st.image(image, caption="拍攝的手掌照片", width=400)
+            image = Image.fromarray(st.session_state.processed_image)
+            st.image(image, caption="拍攝的手掌照片 (含關鍵點)", width=400)
         
         # 分析拍攝的照片
         try:
-            edges, features = analyze_palm(image)
-            st.success("✅ 照片處理成功！")
-            
-            # 設定 uploaded_file 為拍攝的圖片以便後續處理
-            uploaded_file = True  # 標記有圖片可以分析
+            # 檢查是否有成功拍攝的照片
+            if 'captured_image' in st.session_state:
+                image = Image.fromarray(st.session_state.captured_image)
+                edges, features = analyze_palm(image)
+                st.success("✅ 照片處理成功！")
+                uploaded_file = True  # 標記有圖片可以分析
+            else:
+                uploaded_file = None
             
         except Exception as e:
             st.error(f"❌ 圖片處理錯誤：{str(e)}")
             uploaded_file = None
 
-st.markdown("""
-    <style>
-    div.stButton > button:first-child {
-        height: 60px;
-        font-size: 20px;
-        border-radius: 10px;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 if uploaded_file:
     # 處理上傳的檔案
@@ -96,11 +104,23 @@ if uploaded_file:
         
         try:
             image = Image.open(uploaded_file)
+            
+            # 檢查圖片是否包含手部
+            hand_detected, num_landmarks, processed_image = detect_hand_in_image(image)
+            
             col1, col2, col3 = st.columns([1, 3, 1])
             with col2:
-                st.image(image, caption="預覽照片", width=400)
-            edges, features = analyze_palm(image)
-            st.success(f"✅ 圖片上傳成功！檔案大小：{file_size/1024/1024:.1f}MB")
+                st.image(processed_image, caption="預覽照片", width=400)
+            
+            if hand_detected:
+                edges, features = analyze_palm(image)
+                st.success(f"✅ 圖片上傳成功！檔案大小：{file_size/1024/1024:.1f}MB")
+                st.success(f"✋ 偵測到完整手部")
+            else:
+                st.error("❌ 未偵測到完整手部，無法進行分析")
+                st.info("💡 請上傳包含清晰手掌的照片")
+                st.stop()
+                
         except Exception as e:
             st.error(f"❌ 圖片格式錯誤或檔案損壞：{str(e)}")
             st.stop()
@@ -113,11 +133,11 @@ if uploaded_file:
         else:
             st.error("❌ 請先拍照。")
             st.stop()
+
     if st.button("開始分析手相"):
         # 立即顯示分析狀態
         status_placeholder = st.empty()
         result_placeholder = st.empty()
-        
         status_placeholder.info("🔮 正在分析手相，請稍候...")
         
         with st.spinner("分析手相中..."):
