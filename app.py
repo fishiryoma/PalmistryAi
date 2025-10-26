@@ -148,7 +148,7 @@ if uploaded_file:
         result_placeholder.write(result)
         
         character = result.split("與你相近的西洋棋角色為：")[-1].strip()[:2]
-        file_path = f"./assets/{role_name("tw", character)}.png"
+        file_path = f"./assets/{role_name('tw', character)}.png"
         print(character)
 
         col1, col2, col3 = st.columns([1, 3, 1])
