@@ -6,8 +6,8 @@ from analyzer.role_map import role_name
 from analyzer.camera_utils import init_camera, capture_photo
 from analyzer.hand_detector import detect_hand_in_image
 
-st.set_page_config(page_title="手相占卜 AI", layout="centered")
-st.title("📸 手相占卜 AI 測試版")
+st.set_page_config(page_title="AI手相占卜", layout="centered")
+st.title("📸 AI手相占卜")
 
 st.markdown("""
     <style>

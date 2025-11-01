@@ -59,7 +59,14 @@ def init_camera():
         key="camera",
         video_transformer_factory=VideoTransformer,
         rtc_configuration=RTC_CONFIGURATION,
-        media_stream_constraints={"video": True, "audio": False},
+        media_stream_constraints={
+            "video": {
+                "facingMode": {"ideal": "environment"},
+                "width": {"ideal": 1920},
+                "height": {"ideal": 1080}
+            },
+            "audio": False
+        },
         async_processing=False,
     )
     
