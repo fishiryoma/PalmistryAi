@@ -4,7 +4,7 @@ from generator.ai import call_ai
 from analyzer.image_utils import analyze_palm
 from analyzer.role_map import role_name
 from analyzer.camera_utils import init_camera, capture_photo
-from analyzer.hand_detector import detect_hand_in_image
+from analyzer.hand_detector import detect_hand_in_image, get_hands_model
 import json
 import os
 from config import LANGUAGES
@@ -60,11 +60,14 @@ else:
     webrtc_ctx = init_camera()
     if not webrtc_ctx.state.playing:
         st.warning(t["warning_camera_not_started"])
+    
+    hands_model = get_hands_model()
+
     if st.button(t["button_capture"], key="capture_btn", disabled=not webrtc_ctx.state.playing):
         with st.spinner(t["spinner_capturing"]):
             captured_image = capture_photo(webrtc_ctx)
             if captured_image is not None:
-                hand_detected, num_landmarks, processed_image = detect_hand_in_image(captured_image)
+                hand_detected, num_landmarks, processed_image = detect_hand_in_image(captured_image, hands_model)
 
                 if hand_detected:
                     st.session_state.captured_image = captured_image
@@ -111,8 +114,10 @@ if uploaded_file:
 
         try:
             image = Image.open(uploaded_file)
-
-            hand_detected, num_landmarks, processed_image = detect_hand_in_image(image)
+            
+            # Get the cached hands model
+            hands_model = get_hands_model()
+            hand_detected, num_landmarks, processed_image = detect_hand_in_image(image, hands_model)
 
             col1, col2, col3 = st.columns([1, 3, 1])
             with col2:

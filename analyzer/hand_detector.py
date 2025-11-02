@@ -2,41 +2,52 @@ import cv2
 import numpy as np
 import mediapipe as mp
 from PIL import Image
+import streamlit as st
 
-def detect_hand_in_image(image):
+@st.cache_resource
+def get_hands_model():
     """
-    檢測圖片中是否包含完整的手部 (21個關鍵點)
-    
-    Args:
-        image: PIL Image 或 numpy array
-        
-    Returns:
-        tuple: (hand_detected: bool, num_landmarks: int, processed_image: numpy array)
+    初始化並快取 MediaPipe Hands 模型。
+    使用 @st.cache_resource 確保模型只被載入一次。
     """
-    # 初始化 MediaPipe
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(
-        static_image_mode=True,  # 靜態圖片模式
+    hands = mp.solutions.hands.Hands(
+        static_image_mode=True,
         max_num_hands=1,
         min_detection_confidence=0.7,
         min_tracking_confidence=0.5
     )
-    mp_drawing = mp.solutions.drawing_utils
+    return hands
+
+def detect_hand_in_image(image, hands_model):
+    """
+    檢測圖片中是否包含完整的手部 (21個關鍵點)。
+    這個版本接收一個已經初始化的 hands_model 來避免重複載入。
     
+    Args:
+        image: PIL Image 或 numpy array
+        hands_model: 已經初始化的 MediaPipe Hands 模型
+        
+    Returns:
+        tuple: (hand_detected: bool, num_landmarks: int, processed_image: numpy array)
+    """
+    mp_drawing = mp.solutions.drawing_utils
+    mp_hands = mp.solutions.hands
+
     # 轉換圖片格式
     if isinstance(image, Image.Image):
+        # 如果影像是 RGBA，轉換為 RGB
+        if image.mode == 'RGBA':
+            image = image.convert('RGB')
         rgb_img = np.array(image)
     else:
         rgb_img = image
     
     # 確保是 RGB 格式
-    if len(rgb_img.shape) == 3 and rgb_img.shape[2] == 3:
-        # 如果是 BGR 轉為 RGB
-        if np.max(rgb_img) <= 1.0:
-            rgb_img = (rgb_img * 255).astype(np.uint8)
-    
+    if len(rgb_img.shape) == 3 and rgb_img.shape[2] == 4:
+        rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_RGBA2RGB)
+
     # MediaPipe 手部偵測
-    results = hands.process(rgb_img)
+    results = hands_model.process(rgb_img)
     
     hand_detected = False
     num_landmarks = 0
@@ -49,11 +60,9 @@ def detect_hand_in_image(image):
             if num_landmarks == 21:
                 hand_detected = True
                 
-                # 在圖片上繪製關鍵點 (可選)
-                # 轉換為 BGR 格式繪製
-                bgr_img = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR)
+                # 在圖片上繪製關鍵點
                 mp_drawing.draw_landmarks(
-                    bgr_img, 
+                    processed_image, 
                     hand_landmarks, 
                     mp_hands.HAND_CONNECTIONS,
                     landmark_drawing_spec=mp_drawing.DrawingSpec(
@@ -63,8 +72,6 @@ def detect_hand_in_image(image):
                         color=(255, 255, 255), thickness=4
                     )
                 )
-                processed_image = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
                 break
     
-    hands.close()
     return hand_detected, num_landmarks, processed_image
