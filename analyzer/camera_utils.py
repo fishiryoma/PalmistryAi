@@ -62,8 +62,6 @@ def init_camera():
         media_stream_constraints={
             "video": {
                 "facingMode": {"ideal": "environment"},
-                "width": {"ideal": 1920},
-                "height": {"ideal": 1080}
             },
             "audio": False
         },
